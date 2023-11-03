@@ -2,7 +2,7 @@
 
 /* CSS Document */
 
-@import url(https://rsms.me/inter/inter.css);
+@import url(https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.15/index.min.css);
 
 :root {
   --background-video: #000;
