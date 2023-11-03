@@ -669,6 +669,8 @@ class Main {
 			case GetTime:
 				if (videoList.length == 0) return;
 				client.time = data.getTime.time;
+				// only send current server time if is out of sync
+				if (Math.abs(videoTimer.getTime() - data.getTime.time) < data.getTime.threshold) return;
 
 				final maxTime = videoList.getCurrentItem().duration - 0.01;
 				if (videoTimer.getTime() > maxTime) {

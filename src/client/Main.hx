@@ -116,7 +116,8 @@ class Main {
 		send({
 			type: GetTime,
 			getTime: {
-				time: player.getTime()
+				time: player.getTime(),
+				threshold: settings.synchThreshold
 			},
 		});
 	}

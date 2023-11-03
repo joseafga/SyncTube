@@ -167,7 +167,8 @@ typedef WsEvent = {
 	?getTime:{
 		time:Float,
 		?paused:Bool,
-		?rate:Float
+		?rate:Float,
+		?threshold:Int
 	},
 	?setTime:{
 		time:Float
