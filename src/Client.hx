@@ -17,6 +17,7 @@ enum ClientGroup {
 
 typedef ClientData = {
 	name:String,
+	time:Float,
 	group:Int
 }
 
@@ -28,6 +29,7 @@ class Client {
 	public var isAlive = true;
 	#end
 	public var name:String;
+	public var time = 0.0;
 	public var group:EnumFlags<ClientGroup>;
 	public var isBanned(get, set):Bool;
 	public var isUser(get, set):Bool;
@@ -35,16 +37,18 @@ class Client {
 	public var isAdmin(get, set):Bool;
 
 	#if nodejs
-	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, group:Int) {
+	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, time:Float, group:Int) {
 		this.ws = ws;
 		this.req = req;
 		this.id = id;
 		this.name = name;
+		this.time = time;
 		this.group = new EnumFlags(group);
 	}
 	#else
-	public function new(name:String, group:Int) {
+	public function new(name:String, time:Float, group:Int) {
 		this.name = name;
+		this.time = time;
 		this.group = new EnumFlags(group);
 	}
 	#end
@@ -99,11 +103,12 @@ class Client {
 	public function getData():ClientData {
 		return {
 			name: name,
+			time: time,
 			group: group.toInt()
 		}
 	}
 
 	public static function fromData(data:ClientData):Client {
-		return new Client(data.name, data.group);
+		return new Client(data.name, data.time, data.group);
 	}
 }

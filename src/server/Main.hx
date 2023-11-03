@@ -153,6 +153,11 @@ class Main {
 				client.ws.terminate();
 			}
 		};
+
+		new Timer(2000).run = () -> {
+			if (videoList.length == 0) return;
+			sendClientList();
+		};
 	}
 
 	dynamic function onServerInited():Void {};
@@ -345,7 +350,7 @@ class Main {
 					if (clients.getByName(e.clientName) == null) {
 						final ws:Dynamic = {send: () -> {}};
 						final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
-						final client = new Client(ws, null, id, e.clientName, e.clientGroup);
+						final client = new Client(ws, null, id, e.clientName, e.clientTime, e.clientGroup);
 						ws.ping = () -> client.isAlive = true;
 						clients.push(client);
 					}
@@ -369,7 +374,7 @@ class Main {
 		final name = 'Guest ${id + 1}';
 		trace(Date.now().toString(), '$name connected ($ip)');
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
-		final client = new Client(ws, req, id, name, 0);
+		final client = new Client(ws, req, id, name, 0.0, 0);
 		client.isAdmin = isAdmin;
 		clients.push(client);
 		ws.on("pong", () -> client.isAlive = true);
@@ -413,6 +418,7 @@ class Main {
 	function onMessage(client:Client, data:WsEvent, internal:Bool):Void {
 		logger.log({
 			clientName: client.name,
+			clientTime: client.time,
 			clientGroup: client.group.toInt(),
 			event: data,
 			time: Date.now().toString()
@@ -662,6 +668,8 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
+				client.time = data.getTime.time;
+
 				final maxTime = videoList.getCurrentItem().duration - 0.01;
 				if (videoTimer.getTime() > maxTime) {
 					videoTimer.pause();

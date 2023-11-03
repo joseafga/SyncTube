@@ -39,7 +39,7 @@ class Main {
 	var pageTitle = document.title;
 	var config:Null<Config>;
 	final filters:Array<{regex:EReg, replace:String}> = [];
-	var personal = new Client("Unknown", 0);
+	var personal = new Client("Unknown", 0.0, 0);
 	var isConnected = false;
 	var disabledReconnection = false;
 	var ws:WebSocket;
@@ -113,7 +113,12 @@ class Main {
 	function requestTime():Void {
 		if (!isSyncActive) return;
 		if (player.isListEmpty()) return;
-		send({type: GetTime});
+		send({
+			type: GetTime,
+			getTime: {
+				time: player.getTime()
+			},
+		});
 	}
 
 	function openWebSocket():Void {
@@ -418,7 +423,7 @@ class Main {
 
 			case Logout:
 				updateClients(data.logout.clients);
-				personal = new Client(data.logout.clientName, 0);
+				personal = new Client(data.logout.clientName, 0.0, 0);
 				onUserGroupChanged();
 				showGuestLoginPanel();
 				settings.name = "";
@@ -850,7 +855,7 @@ class Main {
 			if (client.isLeader) list.add('<ion-icon name="play"></ion-icon>');
 			var klass = client.isBanned ? "userlist_banned" : "";
 			if (client.isAdmin) klass += " userlist_owner";
-			list.add('<span class="$klass">${client.name}</span></div>');
+			list.add('<span class="$klass">${client.name} - ${getPlayerTime(client.time)}</span></div>');
 		}
 		final userlist = ge("#userlist");
 		userlist.innerHTML = list.toString();
@@ -862,6 +867,17 @@ class Main {
 
 	function clearChat():Void {
 		ge("#messagebuffer").textContent = "";
+	}
+
+	function getPlayerTime(time:Float):String {
+		final hours = Std.int(time / 3600);
+		final minutes = Std.int(time / 60) % 60;
+		final seconds = Std.int(time % 60);
+		final hh = Std.string(hours).lpad("0", 2);
+		final mm = Std.string(minutes).lpad("0", 2);
+		final ss = Std.string(seconds).lpad("0", 2);
+
+		return '$hh:$mm:$ss';
 	}
 
 	function getLocalDateFromUtc(utcDate:String):String {
