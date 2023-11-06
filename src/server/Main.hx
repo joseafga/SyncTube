@@ -44,6 +44,7 @@ class Main {
 	var wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
+	var appUrl:String;
 	var port:Int;
 	final userList:UserList;
 	final clients:Array<Client> = [];
@@ -95,6 +96,7 @@ class Main {
 		if (config.localNetworkOnly) localIp = "127.0.0.1";
 		else localIp = Utils.getLocalIp();
 		globalIp = localIp;
+		appUrl = (process.env["APP_URL"] != null) ? process.env["APP_URL"] : "http://localhost";
 		port = config.port;
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
@@ -136,7 +138,7 @@ class Main {
 		Lang.init('$dir/langs');
 
 		final server = Http.createServer((req, res) -> {
-			HttpServer.serveFiles(req, res);
+			HttpServer.serveFiles(req, res, appUrl);
 		});
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);

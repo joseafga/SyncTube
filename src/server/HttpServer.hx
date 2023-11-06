@@ -49,10 +49,10 @@ class HttpServer {
 		HttpServer.allowLocalRequests = allowLocalRequests;
 	}
 
-	public static function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
+	public static function serveFiles(req:IncomingMessage, res:ServerResponse, base:String):Void {
 		final url = try {
-			new URL(safeDecodeURI(req.url), "http://localhost");
-		} catch (e) new URL("/", "http://localhost");
+			new URL(safeDecodeURI(req.url), base);
+		} catch (e) new URL("/", base);
 		var filePath = getPath(dir, url);
 		final ext = Path.extension(filePath).toLowerCase();
 
