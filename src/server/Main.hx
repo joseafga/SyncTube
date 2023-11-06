@@ -426,10 +426,6 @@ class Main {
 		switch (data.type) {
 			case Connected:
 				if (!internal) return;
-				if (clients.length == 1 && videoList.length > 0) {
-					if (videoTimer.isPaused()) videoTimer.play();
-				}
-
 				checkBan(client);
 				send(client, {
 					type: Connected,
