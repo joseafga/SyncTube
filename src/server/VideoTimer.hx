@@ -26,6 +26,7 @@ class VideoTimer {
 	}
 
 	public function pause():Void {
+		if (isPaused()) return;
 		startTime += rateTime() - rateTime() * this.rate;
 		pauseStartTime = stamp();
 		rateStartTime = 0;
