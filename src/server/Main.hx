@@ -13,6 +13,7 @@ import js.Node.__dirname;
 import js.Node.process;
 import js.node.Http;
 import js.node.http.IncomingMessage;
+import js.node.url.URL;
 import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import json2object.ErrorUtils;
@@ -370,19 +371,32 @@ class Main {
 		}
 	}
 
+	function validToken(client:Client):Bool {
+		final accessToken = process.env["ACCESS_TOKEN"];
+		if (accessToken == null) return true;
+		final params = new URL(client.req.url, appUrl).searchParams;
+
+		trace('${params.get("token")} -- $accessToken');
+		return params.get("token") == accessToken;
+	}
+
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
 		final ip = clientIp(req);
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
-		trace(Date.now().toString(), '$name connected ($ip)');
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0.0, 0);
+		if (!validToken(client)) {
+			trace(Date.now().toString(), '$name invalid token ($ip)');
+			send(client, {type: KickClient});
+			return;
+		}
+
+		trace(Date.now().toString(), '$name connected ($ip)');
 		client.isAdmin = isAdmin;
 		clients.push(client);
+
 		ws.on("pong", () -> client.isAlive = true);
-		onMessage(client, {
-			type: Connected
-		}, true);
 
 		ws.on("message", (data:js.node.Buffer) -> {
 			final obj = wsEventParser.fromJson(data.toString());
@@ -402,6 +416,10 @@ class Main {
 				type: Disconnected
 			}, true);
 		});
+
+		onMessage(client, {
+			type: Connected
+		}, true);
 	}
 
 	function noTypeObj(data:WsEvent):Bool {

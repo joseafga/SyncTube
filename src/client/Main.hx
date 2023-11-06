@@ -128,7 +128,8 @@ class Main {
 		final port = Browser.location.port;
 		final colonPort = port.length > 0 ? ':$port' : port;
 		final path = Browser.location.pathname;
-		ws = new WebSocket('$protocol//$host$colonPort$path');
+		final search = Browser.location.search;
+		ws = new WebSocket('$protocol//$host$colonPort$path$search');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			chatMessageConnected();
