@@ -371,7 +371,7 @@ class Main {
 		}
 	}
 
-	function validToken(client:Client):Bool {
+	function isValidToken(client:Client):Bool {
 		final accessToken = process.env["ACCESS_TOKEN"];
 		if (accessToken == null) return true;
 		final params = new URL(client.req.url, appUrl).searchParams;
@@ -386,7 +386,7 @@ class Main {
 		final name = 'Guest ${id + 1}';
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0.0, 0);
-		if (!validToken(client)) {
+		if (!isValidToken(client)) {
 			trace(Date.now().toString(), '$name invalid token ($ip)');
 			send(client, {type: KickClient});
 			return;
@@ -774,17 +774,6 @@ class Main {
 						clientName: clientName
 					}
 				});
-				if (videoList.length == 0) return;
-				if (!clients.hasLeader()) {
-					if (videoTimer.isPaused()) videoTimer.play();
-					videoTimer.setRate(1);
-					broadcast({
-						type: Play,
-						play: {
-							time: videoTimer.getTime()
-						}
-					});
-				}
 
 			case PlayItem:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
