@@ -276,6 +276,12 @@ button.danger-bg:focus {
   display: flex;
 }
 
+.center-flex {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .unselectable {
   -webkit-user-select: none;
   user-select: none;
