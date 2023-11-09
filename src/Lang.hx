@@ -15,7 +15,7 @@ private typedef LangMap = Map<String, String>;
 
 class Lang {
 	static final langs:Map<String, LangMap> = [];
-	static var ids = ["en", "ru"];
+	static var ids = ["en", "ru", "pt"];
 	#if (js && !nodejs)
 	static var lang = js.Browser.navigator.language.substr(0, 2).toLowerCase();
 	#end
