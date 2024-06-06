@@ -146,20 +146,17 @@ class Main {
 		if (config.localNetworkOnly) server.listen(port, localIp, onServerInited);
 		else server.listen(port, onServerInited);
 
-		new Timer(25000).run = () -> {
+		new Timer(2000).run = () -> {
 			for (client in clients) {
 				if (client.isAlive) {
-					client.isAlive = false;
+					client.aliveCheck();
 					client.ws.ping();
 					continue;
 				}
 				client.ws.terminate();
 			}
-		};
 
-		new Timer(2000).run = () -> {
-			if (videoList.length == 0) return;
-			sendClientList();
+			sendClientList(); // refresh client list
 		};
 	}
 
@@ -353,7 +350,7 @@ class Main {
 					if (clients.getByName(e.clientName) == null) {
 						final ws:Dynamic = {send: () -> {}};
 						final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
-						final client = new Client(ws, null, id, e.clientName, e.clientTime, e.clientGroup);
+						final client = new Client(ws, null, id, e.clientName, e.clientTime, e.clientLatency, e.clientGroup);
 						ws.ping = () -> client.isAlive = true;
 						clients.push(client);
 					}
@@ -385,7 +382,7 @@ class Main {
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
-		final client = new Client(ws, req, id, name, 0.0, 0);
+		final client = new Client(ws, req, id, name, 0.0, 0.0, 0);
 		if (!isValidToken(client)) {
 			trace(Date.now().toString(), '$name invalid token ($ip)');
 			send(client, {type: KickClient});
@@ -396,7 +393,7 @@ class Main {
 		client.isAdmin = isAdmin;
 		clients.push(client);
 
-		ws.on("pong", () -> client.isAlive = true);
+		ws.on("pong", () -> client.aliveSuccess());
 
 		ws.on("message", (data:js.node.Buffer) -> {
 			final obj = wsEventParser.fromJson(data.toString());
@@ -439,6 +436,7 @@ class Main {
 		logger.log({
 			clientName: client.name,
 			clientTime: client.time,
+			clientLatency: client.latency,
 			clientGroup: client.group.toInt(),
 			event: data,
 			time: Date.now().toString()

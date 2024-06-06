@@ -18,11 +18,14 @@ enum ClientGroup {
 typedef ClientData = {
 	name:String,
 	time:Float,
+	latency:Float,
 	group:Int
 }
 
 class Client {
 	#if nodejs
+	private var _retries = 0;
+	private var _timestamp = 0.0;
 	public final ws:WebSocket;
 	public final req:IncomingMessage;
 	public final id:Int;
@@ -30,6 +33,7 @@ class Client {
 	#end
 	public var name:String;
 	public var time = 0.0;
+	public var latency = 0.0;
 	public var group:EnumFlags<ClientGroup>;
 	public var isBanned(get, set):Bool;
 	public var isUser(get, set):Bool;
@@ -37,18 +41,33 @@ class Client {
 	public var isAdmin(get, set):Bool;
 
 	#if nodejs
-	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, time:Float, group:Int) {
+	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, time:Float, latency:Float, group:Int) {
 		this.ws = ws;
 		this.req = req;
 		this.id = id;
 		this.name = name;
 		this.time = time;
+		this.latency = latency;
 		this.group = new EnumFlags(group);
 	}
+
+	public function aliveCheck() {
+		// Try get response some times or kick
+		if (this._retries >= 10) this.isAlive = false;
+		this._timestamp = Date.now().getTime();
+		this._retries += 1;
+	}
+
+	public function aliveSuccess() {
+		this._retries = 0;
+		this.isAlive = true;
+		this.latency = Date.now().getTime() - this._timestamp;
+	}
 	#else
-	public function new(name:String, time:Float, group:Int) {
+	public function new(name:String, time:Float, latency:Float, group:Int) {
 		this.name = name;
 		this.time = time;
+		this.latency = latency;
 		this.group = new EnumFlags(group);
 	}
 	#end
@@ -104,11 +123,12 @@ class Client {
 		return {
 			name: name,
 			time: time,
+			latency: latency,
 			group: group.toInt()
 		}
 	}
 
 	public static function fromData(data:ClientData):Client {
-		return new Client(data.name, data.time, data.group);
+		return new Client(data.name, data.time, data.latency, data.group);
 	}
 }
