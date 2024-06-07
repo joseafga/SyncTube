@@ -109,6 +109,7 @@ class Raw implements IPlayer {
 			video.id = "videoplayer";
 			video.setAttribute("playsinline", "");
 			video.src = url;
+			video.muted = true;
 			video.oncanplaythrough = player.onCanBePlayed;
 			video.onseeking = player.onSetTime;
 			video.onplay = e -> {
