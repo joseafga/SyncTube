@@ -539,6 +539,10 @@ footer#footer {
   cursor: pointer;
 }
 
+.userlist_item small{
+  margin-left: auto;
+}
+
 .userlist_item>*:not(:last-child) {
   margin-right: .25em;
 }

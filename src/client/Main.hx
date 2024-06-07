@@ -853,11 +853,13 @@ class Main {
 
 		final list = new StringBuf();
 		for (client in clients) {
-			list.add('<div class="userlist_item">');
-			if (client.isLeader) list.add('<ion-icon name="play"></ion-icon>');
+			var icon = client.isLeader ? "star" : "person-circle-outline";
 			var klass = client.isBanned ? "userlist_banned" : "";
 			if (client.isAdmin) klass += " userlist_owner";
-			list.add('<span class="$klass">${client.name} - ${getPlayerTime(client.time)} - ${client.latency}ms</span></div>');
+
+			list.add('<div class="userlist_item">');
+			list.add('<ion-icon name="$icon"></ion-icon>');
+			list.add('<span class="$klass">${client.name}</span><small>${getPlayerTime(client.time)} - ${client.latency}ms</small></div>');
 		}
 		final userlist = ge("#userlist");
 		userlist.innerHTML = list.toString();
