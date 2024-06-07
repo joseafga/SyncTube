@@ -687,8 +687,7 @@ class Main {
 				if (Math.abs(videoTimer.getTime() - data.getTime.time) < data.getTime.threshold) return;
 
 				final maxTime = videoList.getCurrentItem().duration - 0.01;
-				final currTime = videoTimer.getTime() + client.latency;
-				if (currTime > maxTime) {
+				if (videoTimer.getTime() > maxTime) {
 					videoTimer.pause();
 					videoTimer.setTime(maxTime);
 					final skipUrl = videoList.getCurrentItem().url;
@@ -705,7 +704,7 @@ class Main {
 				final obj:WsEvent = {
 					type: GetTime,
 					getTime: {
-						time: currTime
+						time: videoTimer.getTime()
 					}
 				};
 				if (videoTimer.isPaused()) obj.getTime.paused = true;
