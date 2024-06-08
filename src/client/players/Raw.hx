@@ -109,7 +109,6 @@ class Raw implements IPlayer {
 			video.id = "videoplayer";
 			video.setAttribute("playsinline", "");
 			video.src = url;
-			video.muted = true;
 			video.oncanplaythrough = player.onCanBePlayed;
 			video.onseeking = player.onSetTime;
 			video.onplay = e -> {
@@ -119,6 +118,16 @@ class Raw implements IPlayer {
 			video.onpause = player.onPause;
 			video.onratechange = player.onRateChange;
 			playerEl.appendChild(video);
+
+			// Ajust using browser policy
+			switch ((js.Browser.window:Dynamic).navigator.getAutoplayPolicy(video)) {
+				case "allowed":
+					playAllowed = true;
+					video.muted = false;
+				case "allowed-muted":
+					playAllowed = true;
+					video.muted = true;
+			}
 		}
 		if (isHls) initHlsSource(video, url);
 		restartControlsHider();
