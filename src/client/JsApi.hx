@@ -7,8 +7,6 @@ import js.Browser.document;
 import js.Browser.window;
 import js.Syntax;
 
-using StringTools;
-
 private typedef VideoChangeFunc = (item:VideoItem) -> Void;
 private typedef OnceEventFunc = (event:WsEvent) -> Void;
 
@@ -104,8 +102,8 @@ class JsApi {
 	}
 
 	@:expose
-	public static function setVideoSrc(src:String):Void {
-		player.changeVideoSrc(src);
+	public static function setVideoSrc(url:String):Void {
+		player.changeVideoSrc(url);
 	}
 
 	/** Returns current page hostname (domain without protocol) **/

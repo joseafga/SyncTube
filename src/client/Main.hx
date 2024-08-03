@@ -18,11 +18,11 @@ import js.html.Event;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
+import js.html.URL;
 import js.html.VideoElement;
 import js.html.WebSocket;
 
 using ClientTools;
-using StringTools;
 
 class Main {
 	static inline var SETTINGS_VERSION = 4;
@@ -394,7 +394,13 @@ class Main {
 
 	public function tryLocalIp(url:String):String {
 		if (host == globalIp) return url;
-		return url.replace(globalIp, host);
+		try {
+			final url = new URL(url);
+			url.hostname = url.hostname.replace(globalIp, host);
+			return '$url';
+		} catch (e) {
+			return url;
+		}
 	}
 
 	function onMessage(e):Void {
@@ -559,6 +565,9 @@ class Main {
 
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
+
+			case GetYoutubeVideoInfo:
+				// handled by event listeners like `JsApi.once`
 		}
 	}
 
@@ -722,7 +731,8 @@ class Main {
 			});
 		}
 		for (emote in config.emotes) {
-			final tag = emote.image.endsWith("mp4") ? 'video autoplay="" loop="" muted=""' : "img";
+			final isVideoExt = emote.image.endsWith("mp4") || emote.image.endsWith("webm");
+			final tag = isVideoExt ? 'video autoplay="" loop="" muted=""' : "img";
 			filters.push({
 				regex: new EReg("(^| )" + escapeRegExp(emote.name) + "(?!\\S)", "g"),
 				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
@@ -741,7 +751,8 @@ class Main {
 		}
 		smilesList.textContent = "";
 		for (emote in config.emotes) {
-			final tag = emote.image.endsWith("mp4") ? "video" : "img";
+			final isVideoExt = emote.image.endsWith("mp4") || emote.image.endsWith("webm");
+			final tag = isVideoExt ? "video" : "img";
 			final el = document.createElement(tag);
 			el.className = "smile-preview";
 			el.dataset.src = emote.image;

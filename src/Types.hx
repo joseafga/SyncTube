@@ -1,18 +1,19 @@
 package;
 
 import Client.ClientData;
+import utils.YoutubeUtils.YouTubeVideoInfo;
 
 typedef VideoDataRequest = {
-	url:String,
-	atEnd:Bool
+	final url:String;
+	final atEnd:Bool;
 }
 
 typedef VideoData = {
-	duration:Float,
-	?title:String,
-	?url:String,
-	?subs:String,
-	?isIframe:Bool
+	final duration:Float;
+	var ?title:String;
+	var ?url:String;
+	var ?subs:String;
+	var ?isIframe:Bool;
 }
 
 typedef Config = {
@@ -97,14 +98,36 @@ typedef Message = {
 	time:String
 }
 
+@:using(Types.VideoItemTools)
 typedef VideoItem = {
+	/** Immutable, used as identifier for skipping / removing items **/
+	final url:String;
+	var title:String;
+	var author:String;
+	var duration:Float;
+	var ?subs:String;
+	var isTemp:Bool;
+	var isIframe:Bool;
+}
+
+private class VideoItemTools {
+	public static function withUrl(item:VideoItem, url:String):VideoItem {
+		return {
+			url: url,
+			title: item.title,
+			author: item.author,
+			duration: item.duration,
+			subs: item.subs,
+			isTemp: item.isTemp,
+			isIframe: item.isIframe
+		};
+	}
+}
+
+typedef FlashbackItem = {
 	url:String,
-	title:String,
-	author:String,
 	duration:Float,
-	?subs:String,
-	isTemp:Bool,
-	isIframe:Bool
+	time:Float
 }
 
 typedef WsEvent = {
@@ -199,6 +222,10 @@ typedef WsEvent = {
 	},
 	?dump:{
 		data:String
+	},
+	?getYoutubeVideoInfo:{
+		url:String,
+		?response:YouTubeVideoInfo
 	}
 }
 
@@ -237,4 +264,5 @@ enum abstract WsEventType(String) {
 	var UpdatePlaylist;
 	var TogglePlaylistLock;
 	var Dump;
+	var GetYoutubeVideoInfo;
 }

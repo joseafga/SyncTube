@@ -12,8 +12,6 @@ import js.node.http.ServerResponse;
 import js.node.url.URL;
 import sys.FileSystem;
 
-using StringTools;
-
 class HttpServer {
 	static final mimeTypes = [
 		"html" => "text/html",
@@ -21,13 +19,16 @@ class HttpServer {
 		"css" => "text/css",
 		"json" => "application/json",
 		"png" => "image/png",
-		"jpg" => "image/jpg",
+		"jpg" => "image/jpeg",
+		"jpeg" => "image/jpeg",
 		"gif" => "image/gif",
+		"webp" => "image/webp",
 		"svg" => "image/svg+xml",
 		"ico" => "image/x-icon",
 		"wav" => "audio/wav",
 		"mp3" => "audio/mpeg",
 		"mp4" => "video/mp4",
+		"webm" => "video/webm",
 		"woff" => "application/font-woff",
 		"ttf" => "application/font-ttf",
 		"eot" => "application/vnd.ms-fontobject",
@@ -40,6 +41,7 @@ class HttpServer {
 	static var hasCustomRes = false;
 	static var allowedLocalFiles:Map<String, Bool> = [];
 	static var allowLocalRequests = false;
+	static final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
 
 	public static function init(dir:String, ?customDir:String, allowLocalRequests:Bool):Void {
 		HttpServer.dir = dir;
@@ -122,25 +124,22 @@ class HttpServer {
 	static function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
 		if (!Fs.existsSync(filePath)) return false;
 		final videoSize = Fs.statSync(filePath).size;
-		var range:String = req.headers["range"];
-		if (range == null) {
+		final rangeHeader:String = req.headers["range"];
+		if (rangeHeader == null) {
 			res.statusCode = 200;
 			res.setHeader("Content-Length", '$videoSize');
 			final videoStream = Fs.createReadStream(filePath);
 			videoStream.pipe(res);
+			res.on("error", () -> videoStream.destroy());
+			res.on("close", () -> videoStream.destroy());
 			return true;
 		}
-		// if (range == null) range = "bytes=0-";
-		final ranges = ~/[-=]/g.split(range);
-		var start = Std.parseFloat(ranges[1]);
-		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;
-		final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
-		var end = Std.parseFloat(ranges[2]);
-		if (Math.isNaN(end)) end = start + CHUNK_SIZE;
-		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = videoSize - 1;
+		final range = parseRangeHeader(rangeHeader, videoSize);
+		final start = range.start;
+		final end = range.end;
 		final contentLength = end - start + 1;
 
-		res.setHeader("Content-Range", 'bytes ${start}-${end}/${videoSize}');
+		res.setHeader("Content-Range", 'bytes $start-$end/$videoSize');
 		res.setHeader("Content-Length", '$contentLength');
 		// HTTP Status 206 for Partial Content
 		res.statusCode = 206;
@@ -148,11 +147,26 @@ class HttpServer {
 		final videoStream = Fs.createReadStream(filePath, {start: cast start, end: cast end});
 		// stream the video chunk to the client
 		videoStream.pipe(res);
+		res.on("error", () -> videoStream.destroy());
+		res.on("close", () -> videoStream.destroy());
 		return true;
 	}
 
+	static function parseRangeHeader(rangeHeader:String, videoSize:Float):{start:Float, end:Float} {
+		final ranges = ~/[-=]/g.split(rangeHeader);
+		var start = Std.parseFloat(ranges[1]);
+		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;
+		var end = Std.parseFloat(ranges[2]);
+		if (Math.isNaN(end)) end = start + CHUNK_SIZE;
+		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = videoSize - 1;
+		return {
+			start: start,
+			end: end
+		};
+	}
+
 	static function isMediaExtension(ext:String):Bool {
-		return ext == "mp4" || ext == "mp3" || ext == "wav";
+		return ext == "mp4" || ext == "webm" || ext == "mp3" || ext == "wav";
 	}
 
 	static final matchLang = ~/^[A-z]+/;
@@ -171,25 +185,26 @@ class HttpServer {
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
 		final url = req.url.replace("/proxy?url=", "");
-		final proxy = proxyRequest(url, req, res, proxyReq -> {
-			final url = proxyReq.headers["location"];
-			if (url == null) return false;
-			final proxy2 = proxyRequest(url, req, res, proxyReq -> false);
+		final proxy = proxyRequest(url, req, res, proxyRes -> {
+			final url = proxyRes.headers["location"] ?? return false;
+			final proxy2 = proxyRequest(url, req, res, proxyRes -> false);
 			if (proxy2 == null) {
 				res.end('Proxy error: multiple redirects for url $url');
 				return true;
 			}
-			req.pipe(proxy2, {end: true});
+			req.pipe(proxy2);
 			return true;
 		});
 		if (proxy == null) return false;
-		req.pipe(proxy, {end: true});
+		req.pipe(proxy);
 		return true;
 	}
 
 	static function proxyRequest(
-		url:String, req:IncomingMessage, res:ServerResponse,
-		fn:(req:IncomingMessage) -> Bool
+		url:String,
+		req:IncomingMessage,
+		res:ServerResponse,
+		cancelProxyRequest:(proxyRes:IncomingMessage) -> Bool
 	):Null<ClientRequest> {
 		final url = try {
 			new URL(safeDecodeURI(url));
@@ -201,12 +216,14 @@ class HttpServer {
 			path: url.pathname + url.search,
 			method: req.method
 		};
+		req.headers["referer"] = url.toString();
+		req.headers["host"] = url.hostname;
 		final request = url.protocol == "https:" ? Https.request : Http.request;
-		final proxy = request(options, proxyReq -> {
-			if (fn(proxyReq)) return;
-			proxyReq.headers["Content-Type"] = "application/octet-stream";
-			res.writeHead(proxyReq.statusCode, proxyReq.headers);
-			proxyReq.pipe(res, {end: true});
+		final proxy = request(options, proxyRes -> {
+			if (cancelProxyRequest(proxyRes)) return;
+			proxyRes.headers["Content-Type"] = "application/octet-stream";
+			res.writeHead(proxyRes.statusCode, proxyRes.headers);
+			proxyRes.pipe(res);
 		});
 		proxy.on("error", err -> {
 			res.end('Proxy error: ${url.href}');
