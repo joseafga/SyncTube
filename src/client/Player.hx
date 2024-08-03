@@ -160,10 +160,10 @@ class Player {
 
 	public function setPauseIndicator(flag:Bool):Void {
 		if (!main.isSyncActive) return;
-		final state = flag ? "play" : "pause";
 		final el = ge("#pause-indicator");
-		if (el.getAttribute("name") == state) return;
-		el.setAttribute("name", state);
+
+		if (flag) el.setAttribute("name", "sync");
+		else el.setAttribute("name", "pause");
 	}
 
 	public function onCanBePlayed():Void {

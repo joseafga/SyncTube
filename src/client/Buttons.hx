@@ -142,11 +142,9 @@ class Buttons {
 				if (!window.confirm(Lang.get("toggleSynchConfirm"))) return;
 				main.isSyncActive = false;
 				icon.style.color = "rgba(238, 72, 67, 0.75)";
-				icon.setAttribute("name", "pause");
 			} else {
 				main.isSyncActive = true;
 				icon.style.color = "";
-				icon.setAttribute("name", "play");
 				main.send({type: UpdatePlaylist});
 			}
 		}
